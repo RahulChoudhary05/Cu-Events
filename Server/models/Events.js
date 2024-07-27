@@ -20,14 +20,18 @@ const eventSchema = new mongoose.Schema({
         enum: ['general', 'hackathon'],
         required: true,
     },
-    attendees: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-    }],
-    topParticipants: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-    }] // For hackathon winners
+    attendees: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        }
+    ],
+    topParticipants: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        }
+    ] // For hackathon winners
 },
     {
         timestamps: true
