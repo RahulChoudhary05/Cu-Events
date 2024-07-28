@@ -1,8 +1,7 @@
-// backend/models/Event.js
 const mongoose = require('mongoose');
 
 const eventSchema = new mongoose.Schema({
-    title: {
+    name: {
         type: String,
         required: true,
     },
@@ -12,13 +11,50 @@ const eventSchema = new mongoose.Schema({
     },
     date: {
         type: Date,
-        required: true
-        ,
+        required: true,
     },
+    time: {
+        type: String,
+        required: true,
+    },
+    FAQ: [
+        {
+            question: {
+                type: String,
+                required: true,
+            },
+            answer: {
+                type: String,
+                required: true,
+            }
+        }
+    ],
     type: {
         type: String,
-        enum: ['general', 'hackathon'],
+        enum: ['General', 'Hackathon'],
         required: true,
+    },
+    ratingAndReview: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'RatingAndReview',
+        }
+    ],
+    posterImage: {
+        type: String,
+        required: true,
+    },
+    location: {
+        type: String,
+        required: true,
+    },
+    photoLink: {
+        type: String,
+        required: false,
+    },
+    certificationLink: {
+        type: String,
+        required: false,
     },
     attendees: [
         {
@@ -31,7 +67,7 @@ const eventSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
         }
-    ] // For hackathon winners
+    ]
 },
     {
         timestamps: true

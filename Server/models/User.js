@@ -16,17 +16,30 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
+    outlook: {
+        type: String,
+        required: true,
+        trim: true,
+    },
     password: {
         type: String,
         required: true,
     },
     accountType: {
         type: String,
-        enum: ['student', 'admin'],
-        default: 'student',
+        enum: ['Organizer', 'User'],
+        default: 'user',
         required: true,
     },
-    phone: {
+    additionalDetails: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: "Profile",
+    },
+    resetPasswordExpires: {
+        type: Date,
+    },
+    image: {
         type: String,
         required: true,
     },

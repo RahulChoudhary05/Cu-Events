@@ -1,0 +1,30 @@
+const mongoose = require('mongoose');
+
+const attendanceSchema = new mongoose.Schema({
+    uid: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User',
+    },
+    name: {
+        type: String,
+        required: true,
+    },
+    event: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Event',
+    },
+    isAbsent: {
+        type: Boolean,
+        default: true,
+    },
+    certificateLink: {
+        type: String,
+        required: false,
+    }
+}, {
+    timestamps: true
+});
+
+module.exports = mongoose.model('Attendance', attendanceSchema);
