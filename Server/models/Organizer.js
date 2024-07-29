@@ -16,6 +16,10 @@ const organiserSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
+    approved: {
+        type: Boolean,
+        default: true,
+    },
     email: {
         type: String,
         required: true,
@@ -24,6 +28,9 @@ const organiserSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
+    },
+    token: {
+        type: String,
     },
 },
     { timestamps: true }
