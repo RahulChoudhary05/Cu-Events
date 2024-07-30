@@ -4,6 +4,7 @@ const OTP = require("../models/OTP");
 const Profile = require("../models/Profile")
 const jwt = require("jsonwebtoken");
 const otpGenerator = require("otp-generator");
+const Organizer = require("../models/Organizer");
 
 exports.signUpUser = async (req, res) => {
     try {
@@ -157,6 +158,122 @@ exports.signUpOrganizer = async (req, res) => {
     }
 }
 
+exports.loginOrganizer = async (req, res) => {
+    try {
+        const { email, password } = req.body;                  //get data from req body
+
+        if (!email || !password) {                             // validate krlo means all inbox are filled or not;
+            return res.status(403).json({
+                success: false,
+                message: 'Please Fill up All the Required Fields',
+            });
+        }
+
+        const user = await User.findOne({ email }).populate("additionalDetails");          //user check exist or not
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "User is not registrered, please signup first",
+            });
+        }
+
+        if (await bcrypt.compare(password, user.password)) {                    //generate JWT, after password matching/comparing
+            const payload = {                                                 // generate payload;
+                email: user.email,
+                id: user._id,
+                accountType: user.accountType,
+            }
+            const token = jwt.sign(payload, process.env.JWT_SECRET, {         // generate token (combination of header , payload , signature) 
+                expiresIn: "20h",                                               // set expiry time;
+            });
+            user.token = token;
+            user.password = undefined;
+
+            const options = {                                               //create cookie and send response
+                expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+                httpOnly: true,
+            }
+            res.cookie("token", token, options).status(200).json({
+                success: true,
+                token,
+                user,
+                message: 'Logged in successfully',
+            })
+        }
+        else {
+            return res.status(401).json({
+                success: false,
+                message: 'Password is incorrect',
+            });
+        }
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: 'Login Failure, please try again',
+        });
+    }
+};
+
+exports.loginUser = async (req, res) => {
+    try {
+        const { email, password } = req.body;                  //get data from req body
+
+        if (!email || !password) {                             // validate krlo means all inbox are filled or not;
+            return res.status(403).json({
+                success: false,
+                message: 'Please Fill up All the Required Fields',
+            });
+        }
+
+        const organizer = await Organizer.findOne({ email }).populate("additionalDetails");          //user check exist or not
+        if (!organizer) {
+            return res.status(401).json({
+                success: false,
+                message: "organizer is not registrered, please signup first",
+            });
+        }
+
+        if (await bcrypt.compare(password, organizer.password)) {                    //generate JWT, after password matching/comparing
+            const payload = {                                                 // generate payload;
+                email: organizer.email,
+                id: organizer._id,
+                accountType: organizer.accountType,
+            }
+            const token = jwt.sign(payload, process.env.JWT_SECRET, {         // generate token (combination of header , payload , signature) 
+                expiresIn: "20h",                                               // set expiry time;
+            });
+            organizer.token = token;
+            organizer.password = undefined;
+
+            const options = {                                               //create cookie and send response
+                expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+                httpOnly: true,
+            }
+            res.cookie("token", token, options).status(200).json({
+                success: true,
+                token,
+                organizer,
+                message: 'Logged in successfully',
+            })
+        }
+        else {
+            return res.status(401).json({
+                success: false,
+                message: 'Password is incorrect',
+            });
+        }
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: 'Login Failure, please try again',
+        });
+    }
+};
+
 exports.sendOTP = async (req, res) => {
     try {
         const { email } = req.body;
@@ -202,3 +319,5 @@ exports.sendOTP = async (req, res) => {
         });
     }
 };
+
+
