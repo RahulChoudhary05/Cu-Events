@@ -11,6 +11,14 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
+    id: {
+        type: String,
+        required: true,
+    },
+    approved: {
+        type: Boolean,
+        default: true,
+    },
     email: {
         type: String,
         required: true,
@@ -43,10 +51,6 @@ const userSchema = new mongoose.Schema({
         type: Date,
     },
     image: {
-        type: String,
-        required: true,
-    },
-    uid: {
         type: String,
         required: true,
     },

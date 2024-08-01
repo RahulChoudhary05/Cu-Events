@@ -13,9 +13,9 @@ const eventSchema = new mongoose.Schema({
         type: Date,
         required: true,
     },
-    time: {
-        type: String,
-        required: true,
+    createdAt: {
+        type: Date,
+        default: Date.now
     },
     FAQ: [
         {
@@ -59,6 +59,7 @@ const eventSchema = new mongoose.Schema({
     attendees: [
         {
             type: mongoose.Schema.Types.ObjectId,
+            required: true,
             ref: 'User',
         }
     ],
@@ -67,7 +68,11 @@ const eventSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
         }
-    ]
+    ],
+    status: {
+        type: String,
+        enum: ["Draft", "Published"],
+    },
 },
     {
         timestamps: true

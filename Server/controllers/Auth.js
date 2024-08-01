@@ -4,14 +4,13 @@ const OTP = require("../models/OTP");
 const Profile = require("../models/Profile")
 const jwt = require("jsonwebtoken");
 const otpGenerator = require("otp-generator");
-const Organizer = require("../models/Organizer");
 
 exports.signUp = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, confirmPassword, accountType, contactNumber, otp, staffId } = req.body;
+        const { firstName, lastName, email, password, confirmPassword, accountType, contactNumber, otp, id } = req.body;
 
         // Validate required fields
-        if (!firstName || !lastName || !email || !password || !confirmPassword || !otp || !accountType) {
+        if (!firstName || !lastName || !email || !password || !confirmPassword || !otp || !accountType || !id) {
             return res.status(403).json({
                 success: false,
                 message: "All fields are required",
@@ -206,4 +205,49 @@ exports.sendOTP = async (req, res) => {
     }
 };
 
-
+exports.changePassword = async (req, res) => {
+    try {
+      const userDetails = await User.findById(req.user.id);
+  
+      const { oldPassword, newPassword, conformPassword } = req.body;
+  
+      // Validate old password
+      const isPasswordMatch = await bcrypt.compare(
+        oldPassword,
+        userDetails.password
+      );
+      if (oldPassword || newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "New Password cannot be same as Old Password",
+        });
+      }
+  
+      if (!isPasswordMatch) {
+        return res.status(401).json({
+          success: false,
+          message: "Password incorrect",
+        });
+      }
+  
+      if (newPassword || conformPassword) {
+        return res.status(400).json({
+          uccess: false,
+          message: "New Password and conform Password doesn't match",
+        });
+      }
+  
+      const encryptedPassword = await bcrypt.hash(newPassword, 10);
+      const updateUserDetails = await User.findByIdAndUpdate(
+        req.user.id,
+        { password: encryptedPassword },
+        { new: true }
+      );
+    } catch (error) {
+      console.log(error.message);
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  };
