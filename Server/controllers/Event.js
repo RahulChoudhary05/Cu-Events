@@ -10,7 +10,6 @@ exports.createEvent = async (req, res) => {
 
     const posterImage = req.files.poster;
 
-    // Validate required fields
     if (
       !name ||
       !description ||
@@ -38,7 +37,6 @@ exports.createEvent = async (req, res) => {
       });
     }
 
-    // Validate category
     const categoryDetails = await Category.findById(categoryId);
     if (!categoryDetails) {
       return res.status(400).json({
