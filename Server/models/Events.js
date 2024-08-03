@@ -17,18 +17,6 @@ const eventSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    FAQ: [
-        {
-            question: {
-                type: String,
-                required: true,
-            },
-            answer: {
-                type: String,
-                required: true,
-            }
-        }
-    ],
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
@@ -56,7 +44,7 @@ const eventSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
-    attendees: [
+    attendance: [
         {
             type: mongoose.Schema.Types.ObjectId,
             required: true,
