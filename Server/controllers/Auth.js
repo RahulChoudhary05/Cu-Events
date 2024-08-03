@@ -7,138 +7,147 @@ const otpGenerator = require("otp-generator");
 
 exports.signUp = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, confirmPassword, accountType, contactNumber, otp, id } = req.body;
+        const { firstName, lastName, email, password, confirmPassword, accountType, contactNumber, otp } = req.body;
 
-        // Validate required fields
-        if (!firstName || !lastName || !email || !password || !confirmPassword || !otp || !accountType || !id) {
+        // Validate input fields
+        if (!firstName || !lastName || !email || !password || !confirmPassword || !otp) {
             return res.status(403).json({
                 success: false,
                 message: "All fields are required",
             });
         }
 
-        if (password !== confirmPassword) { // Validate password match
+        // Check if passwords match
+        if (password !== confirmPassword) {
             return res.status(400).json({
                 success: false,
-                message: 'Password and ConfirmPassword value does not match, please try again',
+                message: 'Password and Confirm Password do not match',
             });
         }
 
-        const existingUser = await User.findOne({ email }); // Check if user already exists
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
-                message: 'User is already registered',
+                message: 'User already registered',
             });
         }
 
-        const response = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1); // Find most recent OTP
-        if (response.length === 0) {
+        // Find the most recent OTP
+        const otpResponse = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1);
+        if (otpResponse.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'OTP not found',
             });
-        } else if (otp !== response[0].otp) { // Validate OTP
+        }
+
+        // Validate OTP
+        if (otp !== otpResponse[0].otp) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid OTP",
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create profile details entry
+        // Determine approval status
+        const approved = accountType === 'Organizer' ? false : true;
+
+        // Create profile
         const profileDetails = await Profile.create({
             gender: null,
             about: null,
-            contactNumber: null,
+            contactNumber: contactNumber || null, // Handle contactNumber
         });
 
-        // Common user object
-        const userObject = {
+        // Create user
+        const user = await User.create({
             firstName,
             lastName,
             email,
             contactNumber,
             password: hashedPassword,
-            accountType: accountType,
+            accountType,
+            approved,
             additionalDetails: profileDetails._id,
             image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
-        };
-
-        if (accountType === 'Organizer') { // Additional fields for organizer
-            if (!staffId) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Staff ID is required for organizer",
-                });
-            }
-            userObject.staffId = staffId;
-            userObject.approved = false;
-        }
-
-        // Create user in DB
-        const user = await User.create(userObject);
+        });
 
         return res.status(200).json({
             success: true,
             user,
-            message: `${accountType} is registered successfully`,
+            message: 'User registered successfully',
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return res.status(500).json({
             success: false,
-            message: `${accountType} cannot be registered. Please try again`,
+            message: "User registration failed. Please try again.",
         });
     }
 };
 
 exports.login = async (req, res) => {
     try {
-        const { email, password, accountType } = req.body; // get data from req body
+        const { email, password, accountType } = req.body;
 
-        if (!email || !password || !accountType) { // validate that all required fields are filled
+        // Validate input fields
+        if (!email || !password || !accountType) {
             return res.status(403).json({
                 success: false,
-                message: 'Please Fill up All the Required Fields',
+                message: 'Please fill in all required fields',
             });
         }
 
+        // Find the user based on account type
         let user;
-        if (accountType === 'organizer') {
-            user = await Organizer.findOne({ email }).populate("additionalDetails"); // check if organizer exists
+        if (accountType === 'Organizer') {
+            user = await Organizer.findOne({ email }).populate('additionalDetails'); // Ensure Organizer model is defined
+        } else if (accountType === 'User') {
+            user = await User.findOne({ email }).populate('additionalDetails');
         } else {
-            user = await User.findOne({ email }).populate("additionalDetails"); // check if user exists
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid account type',
+            });
         }
 
+        // Check if user exists
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: `${userType} is not registered, please signup first`,
+                message: `${accountType} is not registered. Please sign up first.`,
             });
         }
 
-        if (await bcrypt.compare(password, user.password)) { // generate JWT after password matching
-            const payload = { // generate payload
+        // Check if password matches
+        if (await bcrypt.compare(password, user.password)) {
+            // Generate JWT token
+            const payload = {
                 email: user.email,
                 id: user._id,
                 accountType: user.accountType,
             };
 
-            const token = jwt.sign(payload, process.env.JWT_SECRET, { // generate token
-                expiresIn: "20h", // set expiry time
+            const token = jwt.sign(payload, process.env.JWT_SECRET, {
+                expiresIn: '20h',
             });
 
             user.token = token;
-            user.password = undefined;
+            user.password = undefined; 
 
-            const options = { // create cookie and send response
-                expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-                httpOnly: true,
+        
+            const options = {
+                expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // Cookie expiry
+                httpOnly: true, // Prevents client-side JavaScript access
             };
 
-            res.cookie("token", token, options).status(200).json({
+            // Send response with token
+            res.cookie('token', token, options).status(200).json({
                 success: true,
                 token,
                 user,
@@ -147,14 +156,14 @@ exports.login = async (req, res) => {
         } else {
             return res.status(401).json({
                 success: false,
-                message: 'Password is incorrect',
+                message: 'Incorrect password',
             });
         }
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return res.status(500).json({
             success: false,
-            message: 'Login Failure, please try again',
+            message: 'Login failed. Please try again.',
         });
     }
 };
@@ -207,47 +216,63 @@ exports.sendOTP = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
     try {
-      const userDetails = await User.findById(req.user.id);
-  
-      const { oldPassword, newPassword, conformPassword } = req.body;
-  
-      // Validate old password
-      const isPasswordMatch = await bcrypt.compare(
-        oldPassword,
-        userDetails.password
-      );
-      if (oldPassword || newPassword) {
-        return res.status(400).json({
-          success: false,
-          message: "New Password cannot be same as Old Password",
+        const { oldPassword, newPassword, confirmPassword } = req.body;
+        const { id } = req.user; // User ID from authenticated request
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required',
+            });
+        }
+
+        if (newPassword === oldPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password cannot be the same as the old password',
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "New password and confirm password do not match",
+            });
+        }
+
+        // Find user by ID
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        // Validate old password
+        const isPasswordMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isPasswordMatch) {
+            return res.status(401).json({
+                success: false,
+                message: 'Old password is incorrect',
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update user password
+        await User.findByIdAndUpdate(id, { password: hashedPassword });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Password updated successfully',
         });
-      }
-  
-      if (!isPasswordMatch) {
-        return res.status(401).json({
-          success: false,
-          message: "Password incorrect",
-        });
-      }
-  
-      if (newPassword || conformPassword) {
-        return res.status(400).json({
-          uccess: false,
-          message: "New Password and conform Password doesn't match",
-        });
-      }
-  
-      const encryptedPassword = await bcrypt.hash(newPassword, 10);
-      const updateUserDetails = await User.findByIdAndUpdate(
-        req.user.id,
-        { password: encryptedPassword },
-        { new: true }
-      );
     } catch (error) {
-      console.log(error.message);
-      return res.status(500).json({
-        success: false,
-        error: error.message,
-      });
+        console.error(error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Password change failed. Please try again.',
+        });
     }
-  };
+};
