@@ -1,5 +1,5 @@
 const Event = require('../models/Event');
-const Category = require('../models/Category'); // Ensure this path is correct
+const Category = require('../models/Category'); // Ensure correct path to Category model
 
 exports.createEvent = async (req, res) => {
     try {
@@ -28,7 +28,7 @@ exports.createEvent = async (req, res) => {
             description,
             date,
             FAQ,
-            category: category._id, // Use the category ID
+            category: category._id, // Store category reference
             posterImage,
             location,
             photoLink,
@@ -38,13 +38,13 @@ exports.createEvent = async (req, res) => {
             status,
         });
 
-        return res.status(200).json({
+        return res.status(201).json({ // Use 201 status code for resource creation
             success: true,
             message: 'Event created successfully',
             event: eventDetails,
         });
     } catch (error) {
-        console.error(error.message);
+        console.error('Error creating event:', error.message); // Improved error logging
         return res.status(500).json({
             success: false,
             message: 'Failed to create event. Please try again.',
