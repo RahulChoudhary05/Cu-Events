@@ -29,9 +29,9 @@ const eventSchema = new mongoose.Schema({
             }
         }
     ],
-    type: {
-        type: String,
-        enum: ['General', 'Hackathon'],
+    category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
         required: true,
     },
     ratingAndReview: [
@@ -73,9 +73,8 @@ const eventSchema = new mongoose.Schema({
         type: String,
         enum: ["Draft", "Published"],
     },
-},
-    {
-        timestamps: true
-    });
+}, {
+    timestamps: true
+});
 
 module.exports = mongoose.model('Event', eventSchema);
