@@ -25,7 +25,15 @@ exports.createEvent = async (req, res) => {
       });
     }
 
-    if (!status || status === undefined) {
+    const eventDate = new Date(date);
+    if (isNaN(eventDate)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format",
+      });
+    }
+
+    if (!status) {
       status = "Draft";
     }
 
@@ -46,7 +54,7 @@ exports.createEvent = async (req, res) => {
     }
 
     const poster = await uploadImageToCloudinary(
-      thumbnail,
+      posterImage,
       process.env.FOLDER_NAME
     );
     console.log(poster);
@@ -55,10 +63,9 @@ exports.createEvent = async (req, res) => {
     const eventDetails = await Event.create({
       name,
       description,
-      date,
+      date: eventDate,
       Organizer: organizerDetails._id,
       category: categoryDetails._id,
-      posterImage,
       location,
       posterImage: poster.secure_url,
       status: status,
@@ -80,7 +87,7 @@ exports.createEvent = async (req, res) => {
       { _id: categoryId },
       {
         $push: {
-          course: eventDetails._id,
+          event: eventDetails._id,
         },
       },
       { new: true }
@@ -99,3 +106,73 @@ exports.createEvent = async (req, res) => {
     });
   }
 };
+
+exports.editevent = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+    const updates = req.body;
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    if (req.files && req.files.poster) {
+      const posterImage = req.files.poster;
+      const poster = await uploadImageToCloudinary(
+        posterImage,
+        process.env.FOLDER_NAME
+      );
+      event.posterImage = poster.secure_url;
+    }
+
+    // Update the event fields with the provided data
+    for (const key in updates) {
+      if (updates.hasOwnProperty(key)) {
+        if (key === "Organizer") {
+          event[key] = JSON.parse(updates[key]);
+        } else {
+          event[key] = updates[key];
+        }
+      }
+    }
+
+    await event.save();
+
+    const updateEvent = await Event.findOne({ _id: eventId }).populate({
+      path: "Organizer",
+      populate: { path: "additionalDetails" },
+    }).populate("category")
+      .populate("ratingAndReviews")
+
+    res.json({
+      success: true,
+      message: "Event updated successfully",
+      data: updateEvent,
+    });
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to edit event. Please try again.",
+    });
+  }
+};
+
+exports.deleteEvent = async (req,res) => {
+  try{
+    const {eventId} = req.body;
+
+    const event = await Event.findById(eventId);
+
+    if(!event){
+      return res.status(404).json({message : "Event not found"})
+    }
+  } catch(error){
+    console.error(error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete event. Please try again.",
+    });
+  }
+}
