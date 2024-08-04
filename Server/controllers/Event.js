@@ -2,6 +2,7 @@ const Event = require("../models/Events");
 const Category = require("../models/Category");
 const User = require("../models/User");
 const { uploadImageToCloudinary } = require("../utils/imageuploader");
+const RatingAndReview = require('../models/RatingAndReview');
 
 exports.createEvent = async (req, res) => {
   try {
@@ -99,6 +100,109 @@ exports.createEvent = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to create event. Please try again.",
+    });
+  }
+};
+
+exports.getAllEvents = async (req, res) => {
+  try {
+    const allEvents = await Event.find(
+      { status: "Published" },
+      {
+        name: true,
+        description: true,
+        date: true,
+        posterImage: true,
+        location: true,
+        ratingAndReview: true,
+        attendance: true,
+        topParticipants: true,
+      }
+    )
+      .populate({
+        path: 'RatingAndReview',
+        select: 'rating review user',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email'
+        }
+      })
+      .populate({
+        path: 'attendance',
+        select: 'firstName lastName email'
+      })
+      .populate({
+        path: 'topParticipants',
+        select: 'firstName lastName email'
+      })
+      .exec();
+
+    return res.status(200).json({
+      success: true,
+      data: allEvents,
+    });
+  } catch (error) {
+    console.error('Error fetching events:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Can't fetch event data",
+      error: error.message,
+    });
+  }
+};
+
+// Get details of a specific event
+exports.getEventDetails = async (req, res) => {
+  try {
+    const { eventId } = req.body; 
+
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Event ID is required',
+      });
+    }
+
+    const eventDetails = await Event.findById(eventId)
+      .populate({
+        path: 'RatingAndReview',
+        select: 'rating review user',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email',
+        },
+      })
+      .populate({
+        path: 'attendance',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'topParticipants',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'category',
+        select: 'name description',
+      })
+      .exec();
+
+    if (!eventDetails) {
+      return res.status(404).json({
+        success: false,
+        message: `Could not find event with id: ${eventId}`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: eventDetails,
+    });
+  } catch (error) {
+    console.error('Error fetching event details:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch event details. Please try again.',
+      error: error.message,
     });
   }
 };
