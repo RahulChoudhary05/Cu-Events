@@ -1,7 +1,7 @@
 const Event = require("../models/Events");
 const Category = require("../models/Category");
 const User = require("../models/User");
-const { uploadImageToCloudinary } = require("../utils/imageuploader");
+const {uploadImageToCloudinary} = require("../utils/imageUploader");
 
 exports.createEvent = async (req, res) => {
   try {
@@ -11,7 +11,6 @@ exports.createEvent = async (req, res) => {
 
     const posterImage = req.files.poster;
 
-    // Validate required fields
     if (
       !name ||
       !description ||
@@ -27,7 +26,15 @@ exports.createEvent = async (req, res) => {
       });
     }
 
-    if (!status || status === undefined) {
+    const eventDate = new Date(date);
+    if (isNaN(eventDate)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format",
+      });
+    }
+
+    if (!status) {
       status = "Draft";
     }
 
@@ -39,7 +46,6 @@ exports.createEvent = async (req, res) => {
       });
     }
 
-    // Validate category
     const categoryDetails = await Category.findById(categoryId);
     if (!categoryDetails) {
       return res.status(400).json({
@@ -49,7 +55,7 @@ exports.createEvent = async (req, res) => {
     }
 
     const poster = await uploadImageToCloudinary(
-      thumbnail,
+      posterImage,
       process.env.FOLDER_NAME
     );
     console.log(poster);
@@ -58,10 +64,9 @@ exports.createEvent = async (req, res) => {
     const eventDetails = await Event.create({
       name,
       description,
-      date,
+      date: eventDate,
       Organizer: organizerDetails._id,
       category: categoryDetails._id,
-      posterImage,
       location,
       posterImage: poster.secure_url,
       status: status,
@@ -83,7 +88,7 @@ exports.createEvent = async (req, res) => {
       { _id: categoryId },
       {
         $push: {
-          course: eventDetails._id,
+          event: eventDetails._id,
         },
       },
       { new: true }
@@ -102,3 +107,271 @@ exports.createEvent = async (req, res) => {
     });
   }
 };
+
+exports.getAllEvents = async (req, res) => {
+  try {
+    const allEvents = await Event.find(
+      { status: "Published" },
+      {
+        name: true,
+        description: true,
+        date: true,
+        posterImage: true,
+        location: true,
+        ratingAndReview: true,
+        attendance: true,
+        topParticipants: true,
+      }
+    )
+      .populate({
+        path: 'RatingAndReview',
+        select: 'rating review user',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email'
+        }
+      })
+      .populate({
+        path: 'attendance',
+        select: 'firstName lastName email'
+      })
+      .populate({
+        path: 'topParticipants',
+        select: 'firstName lastName email'
+      })
+      .exec();
+
+    return res.status(200).json({
+      success: true,
+      data: allEvents,
+    });
+  } catch (error) {
+    console.error('Error fetching events:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Can't fetch event data",
+      error: error.message,
+    });
+  }
+};
+
+// Get details of a specific event
+exports.getEventDetails = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Event ID is required',
+      });
+    }
+
+    const eventDetails = await Event.findById(eventId)
+      .populate({
+        path: 'RatingAndReview',
+        select: 'rating review user',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email',
+        },
+      })
+      .populate({
+        path: 'attendance',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'topParticipants',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'category',
+        select: 'name description',
+      })
+      .exec();
+
+    if (!eventDetails) {
+      return res.status(404).json({
+        success: false,
+        message: `Could not find event with id: ${eventId}`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: eventDetails,
+    });
+  } catch (error) {
+    console.error('Error fetching event details:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch event details. Please try again.',
+      error: error.message,
+    });
+  }
+};
+
+exports.editevent = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+    const updates = req.body;
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    if (req.files && req.files.poster) {
+      const posterImage = req.files.poster;
+      const poster = await uploadImageToCloudinary(
+        posterImage,
+        process.env.FOLDER_NAME
+      );
+      event.posterImage = poster.secure_url;
+    }
+
+    // Update the event fields with the provided data
+    for (const key in updates) {
+      if (updates.hasOwnProperty(key)) {
+        if (key === "Organizer") {
+          event[key] = JSON.parse(updates[key]);
+        } else {
+          event[key] = updates[key];
+        }
+      }
+    }
+
+    await event.save();
+
+    const updateEvent = await Event.findOne({ _id: eventId }).populate({
+      path: "Organizer",
+      populate: { path: "additionalDetails" },
+    }).populate("category")
+      .populate("ratingAndReviews")
+
+    res.json({
+      success: true,
+      message: "Event updated successfully",
+      data: updateEvent,
+    });
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to edit event. Please try again.",
+    });
+  }
+};
+
+exports.getFullEventDetails = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+    const userId = req.user.id;
+
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Event ID is required',
+      });
+    }
+
+    const eventDetails = await Event.findById(eventId)
+      .populate({
+        path: 'ratingAndReview',
+        select: 'rating review user',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email',
+        },
+      })
+      .populate({
+        path: 'attendance',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'topParticipants',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'category',
+        select: 'name description',
+      })
+      .exec();
+
+
+    if (!eventDetails) {
+      return res.status(404).json({
+        success: false,
+        message: `Could not find event with id: ${eventId}`,
+      });
+    }
+
+    // Get user's attendance status (if applicable)
+    const userAttendance = await Event.findOne({
+      _id: eventId,
+      attendance: userId
+    }).exec();
+
+    // Respond with event details and user's attendance status
+    return res.status(200).json({
+      success: true,
+      data: {
+        eventDetails,
+        isUserAttending: !!userAttendance,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching event details:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch event details. Please try again.',
+      error: error.message,
+    });
+  }
+};
+
+exports.getOrganizerEvent = async (req, res) => {
+  try {
+    const organizerId = req.user.id;
+
+    const organizerEvent = await Event.find({
+      organizer: organizerId,
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: organizerEvent,
+    })
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve organizer event",
+    });
+  }
+}
+
+exports.deleteEvent = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" })
+    }
+
+    await Event.findByIdAndDelete(eventId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Event delete successfully"
+    })
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete event. Please try again.",
+    });
+  }
+}
