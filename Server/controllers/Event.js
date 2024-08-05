@@ -262,6 +262,27 @@ exports.editevent = async (req, res) => {
   }
 };
 
+exports.getOrganizerEvent = async (req, res) => {
+  try {
+    const organizerId = req.user.id;
+
+    const organizerEvent = await Event.find({
+      organizer: organizerId,
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: organizerEvent,
+    })
+  } catch (error) {
+    console.error(error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve organizer event",
+    });
+  }
+}
+
 exports.deleteEvent = async (req, res) => {
   try {
     const { eventId } = req.body;
@@ -271,6 +292,13 @@ exports.deleteEvent = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" })
     }
+
+    await Event.findByIdAndDelete(eventId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Event delete successfully"
+    })
   } catch (error) {
     console.error(error.message);
     return res.status(500).json({
