@@ -44,6 +44,12 @@ const userSchema = new mongoose.Schema({
         required: true,
         ref: "Profile",
     },
+    attendedEvents: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Event',
+        }
+    ],
     token: {
         type: String,
     },
