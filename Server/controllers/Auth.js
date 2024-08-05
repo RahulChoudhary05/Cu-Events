@@ -10,7 +10,7 @@ exports.signUp = async (req, res) => {
         const { firstName, lastName, email, password, confirmPassword, accountType, contactNumber, otp } = req.body;
 
         // Validate input fields
-        if (!firstName || !lastName || !email || !password || !confirmPassword || !otp) {
+        if (!firstName || !email || !password || !confirmPassword || !otp) {
             return res.status(403).json({
                 success: false,
                 message: "All fields are required",
@@ -74,13 +74,13 @@ exports.signUp = async (req, res) => {
             accountType,
             approved,
             additionalDetails: profileDetails._id,
-            image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
+            image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstName}${lastName}`,
         });
 
         return res.status(200).json({
             success: true,
-            user,
             message: 'User registered successfully',
+            user,
         });
     } catch (error) {
         console.error(error);
@@ -149,9 +149,9 @@ exports.login = async (req, res) => {
             // Send response with token
             res.cookie('token', token, options).status(200).json({
                 success: true,
+                message: 'Logged in successfully',
                 token,
                 user,
-                message: 'Logged in successfully',
             });
         } else {
             return res.status(401).json({
