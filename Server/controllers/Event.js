@@ -1,6 +1,7 @@
 const Event = require("../models/Events");
 const Category = require("../models/Category");
 const User = require("../models/User");
+const {uploadImageToCloudinary} = require("../utils/imageUploader");
 
 exports.createEvent = async (req, res) => {
   try {
