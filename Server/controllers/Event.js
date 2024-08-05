@@ -262,6 +262,73 @@ exports.editevent = async (req, res) => {
   }
 };
 
+exports.getFullEventDetails = async (req, res) => {
+  try {
+    const { eventId } = req.body;
+    const userId = req.user.id;
+
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Event ID is required',
+      });
+    }
+
+    const eventDetails = await Event.findById(eventId)
+      .populate({
+        path: 'ratingAndReview',
+        select: 'rating review user',
+        populate: {
+          path: 'user',
+          select: 'firstName lastName email',
+        },
+      })
+      .populate({
+        path: 'attendance',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'topParticipants',
+        select: 'firstName lastName email',
+      })
+      .populate({
+        path: 'category',
+        select: 'name description',
+      })
+      .exec();
+
+
+    if (!eventDetails) {
+      return res.status(404).json({
+        success: false,
+        message: `Could not find event with id: ${eventId}`,
+      });
+    }
+
+    // Get user's attendance status (if applicable)
+    const userAttendance = await Event.findOne({
+      _id: eventId,
+      attendance: userId
+    }).exec();
+
+    // Respond with event details and user's attendance status
+    return res.status(200).json({
+      success: true,
+      data: {
+        eventDetails,
+        isUserAttending: !!userAttendance,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching event details:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch event details. Please try again.',
+      error: error.message,
+    });
+  }
+};
+
 exports.getOrganizerEvent = async (req, res) => {
   try {
     const organizerId = req.user.id;
