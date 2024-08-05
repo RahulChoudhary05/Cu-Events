@@ -41,7 +41,33 @@ exports.updateProfile = async (req, res) => {
     }
 }
 
-exports.deleteAccount
+exports.deleteAccount = async (req, res) => {
+    try {
+        const id = req.user.id
+        const user = await User.findById({ _id: id })
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        // Delete Assosiated Profile with the User , note we used here "new mongoose.Types.ObjectId()" to convert string into object;
+        await Profile.findByIdAndDelete({ _id: new mongoose.Types.ObjectId(user.additionalDetails), })
+
+        // Now Delete User
+        await User.findByIdAndDelete({ _id: id })
+
+        res.status(200).json({
+            success: true,
+            message: "User deleted successfully",
+        });
+
+    }
+    catch (error) {
+        res.status(500).json({ success: false, message: "User Cannot be deleted successfully" })
+    }
+}
 
 exports.getAllUserDetails = async (req, res) => {
     try {
