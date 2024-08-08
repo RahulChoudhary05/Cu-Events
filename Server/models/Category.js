@@ -12,7 +12,7 @@ const categorySchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['General', 'Hackathon'], // Ensure this matches your event types
+        enum: ['GeneralRegistration', 'HackathonRegistration'], 
         required: true,
     }
 }, { timestamps: true });
