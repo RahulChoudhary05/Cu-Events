@@ -11,10 +11,10 @@ exports.createCategory = async (req, res) => {
             });
         }
 
-        if (!['General', 'Hackathon'].includes(type)) {
+        if (!['GeneralRegistration', 'HackathonRegistration'].includes(type)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid category type. Must be either "General" or "Hackathon"',
+                message: 'Invalid category type. Must be either "GeneralRegistration" or "HackathonRegistration"',
             });
         }
 
