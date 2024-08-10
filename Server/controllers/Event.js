@@ -21,8 +21,7 @@ exports.createEvent = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Name, description, date, categoryId, posterImage, and location are required",
+        message: "Name, description, date, categoryId, posterImage, and location are required",
       });
     }
 

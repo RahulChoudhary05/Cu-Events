@@ -154,7 +154,7 @@ exports.organizerDashboard = async (req, res) => {
             .exec();
 
         const eventData = events.map(event => ({
-            _id: event._id, 
+            _id: event._id,
             posterImage: event.posterImage,
             name: event.name,
             date: event.date,

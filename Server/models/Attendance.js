@@ -15,9 +15,9 @@ const attendanceSchema = new mongoose.Schema({
         required: true,
         ref: 'Event',
     },
-    isAbsent: {
+    isPresent: {
         type: Boolean,
-        default: true,
+        default: false,
     },
     certificateLink: {
         type: String,
