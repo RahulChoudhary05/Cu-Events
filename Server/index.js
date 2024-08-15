@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 const userRoutes = require("./routes/User");
 const eventRoutes = require("./routes/Event");
@@ -20,6 +21,7 @@ database.connect();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
 // Cloudinary connection
 cloudinaryConnect();
