@@ -138,9 +138,9 @@ exports.login = async (req, res) => {
             });
 
             user.token = token;
-            user.password = undefined; 
+            user.password = undefined;
 
-        
+
             const options = {
                 expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // Cookie expiry
                 httpOnly: true, // Prevents client-side JavaScript access
@@ -187,19 +187,18 @@ exports.sendOTP = async (req, res) => {
             specialChars: false,
         });
 
-        const result = await otp.findOne({ otp: otp });
-        console.log("Result is Generate OTP Func");
-        console.log("OTP", otp);
-        console.log("Result", result);
-        while (result) {
-            otp = otpGenerator.generate(6, {
-                upperCaseAlphabets: false,
-            });
+        const existingOTP = await OTP.findOne({ email });
+
+        if (existingOTP) {
+            // Update the existing OTP
+            existingOTP.otp = otp;
+            await existingOTP.save();
+        } else {
+            // Create a new OTP
+            const otpPayload = { email, otp };
+            await OTP.create(otpPayload);
         }
 
-        const otpPayload = { email, otp };
-        const otpBody = await OTP.create(otpPayload);
-        console.log("OTP Body", otpBody);
         res.status(200).json({
             success: true,
             message: "OTP Sent Successfully",

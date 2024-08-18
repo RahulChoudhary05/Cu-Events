@@ -1,5 +1,5 @@
 const RatingAndReview = require("../models/RatingAndReview");
-const Event = require("../models/Event");
+const Event = require("../models/Events");
 const mongoose = require("mongoose");
 
 const createRating = async (req, res) => {

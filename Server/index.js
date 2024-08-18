@@ -40,6 +40,14 @@ app.get("/", (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`App is running at ${PORT}`);
-});
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  });
+  
+  app.listen(PORT, () => {
+      console.log(`App is running at ${PORT}`);
+  });
