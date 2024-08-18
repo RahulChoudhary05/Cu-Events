@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const connectToDB = async () => {
+const connect = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URL, {
       useNewUrlParser: true,
@@ -16,4 +16,4 @@ const connectToDB = async () => {
   }
 };
 
-module.exports = { connectToDB };
+module.exports = { connect };
